@@ -1,0 +1,82 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-info-sa
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-info-role
+rules:
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-info-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-info-role
+subjects:
+  - kind: ServiceAccount
+    name: cluster-info-sa
+    namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-info
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cluster-info
+  template:
+    metadata:
+      labels:
+        app: cluster-info
+    spec:
+      serviceAccountName: cluster-info-sa
+      containers:
+      - name: cluster-info
+        image: isi006/cluster-info:latest
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cluster-info-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: cluster-info
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cluster-info-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx-internal
+  rules:
+  - host: info-apps.bm.dc1.isium.de
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cluster-info-service
+            port:
+              number: 8080

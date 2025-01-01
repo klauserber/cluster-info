@@ -1,0 +1,14 @@
+<html>
+  <head><title>Cluster Info</title></head>
+  <body>
+  <h1>Ingress List</h1>
+  {{range $category, $ingresses := .Categories}}
+      <h2>{{ $category}}</h2>
+      <ul>
+      {{ range $ingresses }}
+          <li><a href="http://{{.Host}}" target="_blank">{{.Namespace}} - {{.Host}}</a></li>
+      {{end}}
+      </ul>
+  {{end}}
+  </body>
+</html>
